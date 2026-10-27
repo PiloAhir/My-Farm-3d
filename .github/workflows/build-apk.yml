@@ -29,23 +29,17 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Accept Android SDK licenses
-        shell: bash
-        run: |
-          set -euo pipefail
-          yes | sdkmanager --licenses
-
       - name: Install Android SDK packages
         shell: bash
         run: |
           set -euo pipefail
-          sdkmanager \
+          sdkmanager --install \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Verify project files
         shell: bash
@@ -56,7 +50,6 @@ jobs:
             echo "ERROR: App Gradle file not found"
             exit 1
           fi
-          echo "Project files found."
 
       - name: Build debug APK
         shell: bash
