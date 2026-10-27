@@ -1,13 +1,11 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
-    paths:
-      - '**'
-      - '!README.md'
+      - master
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -31,19 +29,19 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Accept Android SDK licenses
         shell: bash
         run: |
-          set -o pipefail
-          yes | sdkmanager --licenses || {
-            status=$?
-            if [ "$status" -ne 141 ]; then
-              exit "$status"
-            fi
-          }
+          set -euo pipefail
+          yes | sdkmanager --licenses
 
       - name: Install Android SDK packages
+        shell: bash
         run: |
+          set -euo pipefail
           sdkmanager \
             "platform-tools" \
             "platforms;android-35" \
@@ -52,16 +50,18 @@ jobs:
       - name: Verify project files
         shell: bash
         run: |
-          echo "Checking Android project..."
-          test -f settings.gradle || test -f settings.gradle.kts
-          test -f build.gradle || test -f build.gradle.kts
-          test -f app/build.gradle || test -f app/build.gradle.kts
+          set -euo pipefail
           test -f app/src/main/AndroidManifest.xml
+          if [ ! -f app/build.gradle ] && [ ! -f app/build.gradle.kts ]; then
+            echo "ERROR: App Gradle file not found"
+            exit 1
+          fi
           echo "Project files found."
 
       - name: Build debug APK
         shell: bash
         run: |
+          set -euo pipefail
           if [ -f gradlew ]; then
             chmod +x gradlew
             ./gradlew --no-daemon --stacktrace assembleDebug
@@ -73,6 +73,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AtmanirbharFarm3D-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
